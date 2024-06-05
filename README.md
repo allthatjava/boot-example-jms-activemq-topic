@@ -30,21 +30,39 @@ ActiveMQ Topic `topic-test`.
         ChatMessage chatMessage = new ChatMessage("Test One", "Msg Test("+(++test1Counter)+")");
         jmsTemplate.convertAndSend("topic-test", chatMessage);
     }
-...
+```
+
+### Optional 
+Optional configuration to use durable subscribers
+```java
+    @Bean
+    public JmsListenerContainerFactory<?> connectionFactory(CachingConnectionFactory connectionFactory,
+                                                            DefaultJmsListenerContainerFactoryConfigurer configurer){
+        connectionFactory.setClientId("Unique-Client-ID-1");
+        DefaultJmsListenerContainerFactory factory = new DefaultJmsListenerContainerFactory();
+        configurer.configure(factory,connectionFactory);
+        factory.setConcurrency("1-10");
+        factory.setPubSubDomain(true);          // Set it as Publisher/Subscriber model instead of Queue
+        factory.setSubscriptionShared(true);    // Allow to multiple consumer to process messages
+        factory.setSubscriptionDurable(true);   // Allow to pick up messages added while consumer was offline
+        return factory;
+    }
 ```
 
 When a message arrived to ActiveMQ Topic `topic-test`, this listener will pull the message
-and process it
+and process it. There are two listener methods in example to show multiple subscribers.
 ```java
     // Listens the Topic and get the message from it when new message comes in
-    @JmsListener(destination = "topic-test")
+    @JmsListener(destination = "topic-test",
+                    containerFactory = "connectionFactory", // To make it durable through offline message
+                    subscription = "topic-subscriber")
     public void listenTopicMessage(@Payload ChatMessage chatMessage,
                                    @Headers MessageHeaders headers,
                                    Message message,
                                    Session session){
         LocalDateTime time = chatMessage.getTime();
         System.out.println(
-                chatMessage.getName()+": "+chatMessage.getMessage()
+                "Sub 1 Received:"+chatMessage.getName()+": "+chatMessage.getMessage()
                         +" ("+time.getHour()+":"+time.getMinute()+":"+time.getSecond()+")" );
     }
 ```

@@ -33,28 +33,44 @@ public class BootExampleJmsTopicApplication {
     }
 
     // Client No.1 to send a message to ActiveMQ every 3 sec
-    @Scheduled(fixedRate = 3000)
-    public void sendMessage1() {
-        ChatMessage chatMessage = new ChatMessage("Test One", "Msg Test("+(++test1Counter)+")");
-        jmsTemplate.convertAndSend("topic-test", chatMessage);
-    }
-
-    // Client No.2 to send a message to ActiveMQ every 5 sec
-    @Scheduled(fixedRate = 5000)
-    public void sendMessage2() {
-        ChatMessage chatMessage = new ChatMessage("Test Two", "Two's Msg ("+(++test2Counter)+")");
-        jmsTemplate.convertAndSend("topic-test", chatMessage);
-    }
+//    @Scheduled(fixedRate = 3000)
+//    public void sendMessage1() {
+//        ChatMessage chatMessage = new ChatMessage("Test One", "Msg Test("+(++test1Counter)+")");
+//        jmsTemplate.convertAndSend("topic-test", chatMessage);
+//    }
+//
+//    // Client No.2 to send a message to ActiveMQ every 5 sec
+//    @Scheduled(fixedRate = 5000)
+//    public void sendMessage2() {
+//        ChatMessage chatMessage = new ChatMessage("Test Two", "Two's Msg ("+(++test2Counter)+")");
+//        jmsTemplate.convertAndSend("topic-test", chatMessage);
+//    }
 
     // Listens the Topic and get the message from it when new message comes in
-    @JmsListener(destination = "topic-test")
+    @JmsListener(destination = "topic-test",
+                    containerFactory = "connectionFactory", // To make it durable through offline message
+                    subscription = "topic-subscriber")
     public void listenTopicMessage(@Payload ChatMessage chatMessage,
                                    @Headers MessageHeaders headers,
                                    Message message,
                                    Session session){
         LocalDateTime time = chatMessage.getTime();
         System.out.println(
-                chatMessage.getName()+": "+chatMessage.getMessage()
+                "Sub 1 Received:"+chatMessage.getName()+": "+chatMessage.getMessage()
                         +" ("+time.getHour()+":"+time.getMinute()+":"+time.getSecond()+")" );
     }
+
+    @JmsListener(destination = "topic-test",
+            containerFactory = "connectionFactory", // To make it durable through offline message
+            subscription = "topic-subscriber2")
+    public void listenTopicMessage2(@Payload ChatMessage chatMessage,
+                                   @Headers MessageHeaders headers,
+                                   Message message,
+                                   Session session){
+        LocalDateTime time = chatMessage.getTime();
+        System.out.println(
+                "Sub 2 Received:"+chatMessage.getName()+": "+chatMessage.getMessage()
+                        +" ("+time.getHour()+":"+time.getMinute()+":"+time.getSecond()+")" );
+    }
+
 }
